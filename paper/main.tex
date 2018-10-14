@@ -1,0 +1,106 @@
+\documentclass[conference,final]{IEEEtran}
+
+\usepackage{amssymb}
+\usepackage{amsmath}
+
+%\usepackage{fullpage}
+\usepackage{color}
+\usepackage{float}
+\usepackage{graphicx}
+\usepackage{pgfplots}
+\pgfplotsset{%
+    compat=newest,
+    cycle list={mark=triangle,color=red!75!black\\
+                mark=square,color=green!75!black\\
+                mark=|,color=white\\
+                mark=o,color=blue\\
+                mark=pentagon,color=purple\\
+                mark=x,color=yellow!50!orange\\
+                mark=x,color=brown!75!black\\
+                mark=x,color=black!50!white\\},
+    every axis plot post/.append style={thick},
+    ignore legend/.style={every axis legend/.code={\renewcommand\addlegendentry[2][]{}}}
+    }
+\usepackage{booktabs}
+\usepackage{paralist}
+
+\usepackage{url}
+\usepackage{xspace}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[english]{babel}
+\usepackage[babel]{csquotes}
+
+%%%% Use this to locally disable comments %%%%%
+%\usepackage[disable]{todonotes}
+\usepackage{todonotes}
+
+\usepackage[binary-units=true]{siunitx}
+
+% fix some latex functions
+\usepackage{fixltx2e}
+
+% copyright notice (IEEE)
+\usepackage{eso-pic}
+\AddToShipoutPicture*{\small\sffamily\raisebox{1.8cm}{\hspace{1.8cm}978-1-4799-5944-0/14/\$31.00
+ \copyright2014 IEEE}} 
+
+\usepackage[ruled,linesnumbered,algosection,algo2e]{algorithm2e}
+\SetAlFnt{\small}
+\SetAlCapFnt{\small}
+\SetAlCapNameFnt{\small}
+
+% fix for two column algorithms
+\makeatletter
+\newcommand{\removelatexerror}{\let\@latex@error\@gobble}
+\makeatother
+
+% correct spacing for et al., i.e. and e.g.
+\newcommand{\ie}{\text{i.\,e., }}
+\newcommand{\eg}{\text{e.\,g., }}
+\newcommand{\detal}{\textit{et~al.}}
+\newcommand{\cf}{\text{cf. }}
+
+\usepackage{hyperref}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Macros for ToDos etc.
+% Feel free to add you name as well...
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newcommand{\itodo}[1]{
+  \todo[inline]{#1}
+}
+\newcommand{\inote}[2]{
+  \itodo{#1: #2}
+}
+\newcommand\RZ[1]{\inote{RZ}{{#1}}}
+\newcommand\FW[1]{\inote{FW}{{#1}}}
+
+\begin{document}
+\title{High-Speed Implementation of bcrypt Password Search using Special-Purpose
+Hardware}
+
+\author {
+\IEEEauthorblockN{
+    Friedrich Wiemer,
+    Ralf Zimmermann
+    }
+\IEEEauthorblockA{
+    Horst G\"ortz Institute for IT-Security (HGI), Ruhr-University Bochum,
+	Germany \\
+	Email: {\tt\{friedrich.wiemer, ralf.zimmermann\}@rub.de}
+  }
+}
+
+\maketitle
+
+\input{introduction}
+\input{background}
+\input{bcrypt}
+\input{results}
+\input{conclusion}
+
+\bibliographystyle{IEEEtran}
+\bibliography{bcrypt}
+
+\end{document}

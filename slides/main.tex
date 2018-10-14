@@ -1,0 +1,102 @@
+\documentclass[12pt, dvisvgm]{beamer}
+
+\mode<presentation>
+{%
+	\usetheme[alternativetitlepage=bild]{Rub}
+	\titlegraphic{data/flickr/img-bg.jpg}
+
+	\setbeamercovered{transparent}
+}
+\usepackage{rubfonts2009}
+\usepackage[english]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage[babel,english=american]{csquotes}
+
+\usepackage[scaled=.90]{helvet}
+\usepackage{courier}
+\usepackage[T1]{fontenc}
+
+\usepackage{amsmath}
+\usepackage{mathptmx}
+
+\usepackage{tikz}
+\usetikzlibrary{arrows, shapes, shapes.multipart, decorations}
+\tikzstyle{startstop} = [ellipse, rounded corners, minimum width=3cm, minimum height=1cm, text centered, draw=black, fill=blue!30]
+\tikzstyle{process} = [rectangle, minimum width=3cm, minimum height=1cm, text centered, draw=black, fill=green!30]
+\tikzstyle{plainnode} = [minimum width=2cm, minimum height=1cm, align=center, draw=none]
+\tikzstyle{arrow} = [thick,->,>=stealth]
+
+% Keys to support piece-wise uncovering of elements in TikZ pictures:
+% \node[visible on=<2->](foo){Foo}
+% \node[visible on=<{2,4}>](bar){Bar}   % put braces around comma expressions
+%
+% Internally works by setting opacity=0 when invisible, which has the
+% adavantage (compared to \node<2->(foo){Foo} that the node is always there, hence
+% always consumes space that (foo) is always available.
+%
+% The actual command that implements the invisibility can be overriden
+% by altering the style invisible. For instance \tikzsset{invisible/.style={opacity=0.2}}
+% would dim the "invisible" parts. Alternatively, the color might be set to white, if the
+% output driver does not support transparencies (e.g., PS)
+\tikzset{
+	invisible/.style={opacity=0},
+	visible on/.style={alt={#1{}{invisible}}},
+	alt/.code args={<#1>#2#3}{%
+		\alt<#1>{\pgfkeysalso{#2}}{\pgfkeysalso{#3}} % \pgfkeysalso doesn't change the path
+	},
+}
+
+\usepackage{pgfplots}
+\pgfplotsset{%
+		compat=newest,
+		cycle list={mark=triangle,color=red!75!black\\
+					mark=square,color=green!75!black\\
+					mark=|,color=white\\
+					mark=o,color=blue\\
+					mark=pentagon,color=purple\\
+					mark=x,color=yellow!50!orange\\
+					mark=x,color=brown!75!black\\
+					mark=x,color=black!50!white\\},
+		every axis plot post/.append style={thick},
+		ignore legend/.style={every axis legend/.code={\renewcommand\addlegendentry[2][]{}}}
+		}
+
+\newcommand\blfootnote[1]{%
+	\begingroup
+	\renewcommand\thefootnote{}\footnote{#1}%
+	\addtocounter{footnote}{-1}%
+	\endgroup
+}
+
+\title[High-Speed Implementation of bcrypt Password Search]{High-Speed Implementation of bcrypt Password \\Search using Special-Purpose Hardware}
+\subtitle{}
+\author[Friedrich~Wiemer and Ralf~Zimmermann]{\textbf{Friedrich~Wiemer} and Ralf~Zimmermann}
+\institute
+{%
+	Horst Görtz Institute for IT-Security\\
+	Ruhr University Bochum
+}
+
+\date{10. December 2014}
+
+\AtBeginSection[]
+
+\begin{document}
+
+\begin{frame}
+	\titlepage{}
+\end{frame}
+
+\begin{frame}{Outline}
+	\tableofcontents
+\end{frame}
+
+\input{slides.tex}
+
+\begin{frame}{Questions?}{Thank you for your attention!}
+	\begin{figure}[!htb]
+		\includegraphics[height=50mm]{data/flickr/questionmark.png}\blfootnote{\scriptsize Images: Wikimedia Commons, flickr}
+	\end{figure}
+\end{frame}
+
+\end{document}

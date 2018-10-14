@@ -1,0 +1,43 @@
+%!TEX root = main.tex
+
+\section{Conclusion and Future Work}
+\label{sec:conclusion}
+In this paper, we presented a highly optimized bcrypt implementation on FPGAs.
+We use a quad-core structure to achieve an optimal resource utilization and gain
+a speed-up of 42\% and -- due to lower power consumption -- increased
+power-efficiency by 127\% compared to the previous results on the same device.
+In the design we presented, the critical path is still within the Blowfish core,
+resulting in a moderate clock-frequency of 100 MHz. An idea to improve this is to
+pipeline the encryption within a quad-core, interleaving the computations of the
+core. This may shorten the critical path further, allowing higher clock
+frequencies and more parallel bcrypt cores due to shared resources.
+
+We showed that it is possible to utilize the remaining fabric area to
+implement a small on-chip password generation, which is adaptable and may be
+combined with a dictionary attack, \eg for prefix and suffix modifications.
+These possibilities should be evaluated and further analyzed, as the password
+generation has a high impact on the success rate. Even more importantly, using
+only off-chip password generation, \ie by using a CPU to generate passwords and transfer
+them to the FPGA, introduces two potential bottlenecks: the software
+implementation itself and the data bus. With the combination of off-chip
+creation and on-chip modification, it should be possible to reduce the risk of these
+bottlenecks even in large and highly parallelized clusters: We can use the password
+generator construction for simple mangling rules and relax the interface or
+dedicate several cores to brute-force attacks, while others work on a dictionary.
+This leads to more possible trade-offs in terms of interface speed vs. area
+consumption.
+
+In our attack scenarios, we considered modern representatives of CPUs as well as
+GPUs and benchmarked the (ocl)Hashcat bcrypt implementation on these platforms.
+We compared the total costs of low-power and high-performance devices in two
+scenarios: simple brute-force with a fixed runtime of 1 month (cost 5) and an
+advanced attack with a timeframe of 1 day (cost 12). In both cases, the high
+power consumption of CPUs and GPUs renders large-scale attacks infeasible, as
+our FPGA implementation not only outperforms these devices but also requires
+significantly less power. 
+
+Interestingly, in combination with improved methods to derive suitable password
+candidates, the overall costs when using a fast and power-efficient FPGA
+implementation are not as high as expected for reasonable parameters.  As a
+result, we should evaluate and adjust the parameters used in practice to
+withstand the advances in technology and intelligent password generation.

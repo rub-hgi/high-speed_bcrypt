@@ -1,0 +1,61 @@
+%!TEX root = main.tex
+
+\begin{figure} \centering
+	\begin{tikzpicture}
+	\pgfplotsset{
+		height=.5\textheight, width=.8\textwidth,
+		scale only axis,
+		legend columns=2,
+		legend style={at={(0.5,0.75)},
+					  xshift=0.25cm,
+					  yshift=1.5cm,
+					  anchor=north west,
+					  nodes=right,
+					  font=\scriptsize,
+					 },
+		every axis plot post/.append style={
+			mark=none,
+			domain=0:50,
+			samples=100,
+			thick},
+		}
+	\begin{axis}[
+		scatter/classes={a={mark=|,black}},
+		axis y line=left,
+		axis x line=bottom,
+		x tick label style={font=\scriptsize},
+		y tick label style={font=\scriptsize},
+		xlabel style={font=\footnotesize},
+		xlabel=Number of attacked passwords,
+		ylabel style={font=\footnotesize},
+		ylabel=Total costs in \$1\,000\,000,
+		%xtick={25, 50, 75, 100, 125, 150, 175},
+		xmin=1, xmax=50,
+		ytick={5000000, 7000000, 10000000, 15000000, 20000000},
+		yticklabels={$5$, $7$, $10$, $15$, $20$},
+		ymin=4000000, ymax=25000000,
+		ymode=log,
+		cycle list name=linestyles*
+		]
+		\addplot+[color=black,only marks,scatter,scatter src=explicit symbolic] coordinates{
+			(2.75, 10525390.42) [a]
+			(1.91, 5895676.33) [a]
+			(20.33, 11335789.16) [a]
+			(1.43, 5752687.56) [a]
+			(24.86, 11544263.66) [a]
+			(8.69, 7897759.68) [a]
+			(1017.0, 8177871.0) [a]
+		};
+		\addplot+[color=blue]{5330652+295327*x}; %CPU
+		\addplot+[color=brown]{7896960+955217*x}; %GPU
+		\addplot+[color=orange]{5936853+225588*x}; %CPU+GPU
+		\addplot+[color=green]{5749275+2388*x}; %Virtex7
+		\addplot+[color=red]{4146681+3963*x}; %zedboard
+		\addplot+[color=purple]{5878532+8961*x}; %OWzb
+		\legend{
+			break-even, CPU$^*$, GPU$^*$, CPU+GPU$^*$,
+			Virtex-7, zedboard, Malvoni~et~al.
+			}
+	\end{axis}
+	\end{tikzpicture}
+\end{figure}

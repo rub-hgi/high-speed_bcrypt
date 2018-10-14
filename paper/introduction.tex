@@ -1,0 +1,152 @@
+%!TEX root = main.tex
+
+\begin{abstract}
+Using passwords for user authentication is still the most common method for many
+internet services and attacks on the password databases pose a severe threat. To
+reduce this risk, servers store password hashes, which were generated using
+special password-hashing functions, to slow down guessing attacks. The most
+frequently used functions of this type are PBKDF2, bcrypt and scrypt.\\
+%
+In this paper, we present a novel, flexible, high-speed implementation of a
+bcrypt password search system on a low-power Xilinx Zynq 7020 FPGA. The design
+consists of 40 parallel bcrypt cores running at 100 MHz. Our implementation
+outperforms all currently available implementations and improves password
+attacks on the same platform by at least 42\%, computing 6,511 passwords per
+second for a cost parameter of 5.
+%
+%We compare our results to other platforms, \ie CPUs, GPUs and a Xilinx Virtex-7
+%FPGA, and evaluate the total cost for multiple attacking scenarios using the
+%different platforms and implementations.
+\end{abstract}
+
+\section{Introduction}
+\label{sec:intro}
+
+In the modern world, we constantly use online services in our daily life. As a
+consequence, we provide information to the corresponding service providers,
+\eg financial services, email providers or social networks. To prevent abuse
+like identity theft, we encounter access-control mechanisms at every step we
+make. While it is one of the older mechanisms, password authentication is still
+one of the most frequently used authentication methods on the internet even
+with the emerging advanced login-procedures, \eg single sign-on or two-factor
+authentications.
+% passwords remain a necessary part.
+
+To authenticate users for online services, these passwords are stored on
+corresponding servers. As a consequence, an attack on these databases, followed
+by a leak of the information, pose a very high threat to the users and may form
+a single point of failure, if the passwords are stored in plain text. Recent
+examples of such leaks are the eBay\footnote{\cf
+\url{http://www.ebayinc.com/in_the_news/story/ebay-inc-ask-ebay-users-change-
+passwords}} or Adobe\footnote{\cf \url{https://adobe.cynic.al/}} password leaks,
+where several million passwords were stolen. To prevent these attacks or at
+least raise the barrier of abuse, passwords must be protected on the server.
+Instead of storing the password as plaint text, a cryptographic hash of the
+password is kept. In this case, a successful attacker has to recover the
+passwords from the hash value, which should in theory be infeasible due to the
+properties of the hash function. To prevent time-memory trade-off techniques
+like rainbow tables, the password is combined with a randomly chosen salt and
+the tuple
+\begin{equation*}
+	(s, h) = (salt, \text{hash}(salt, password))
+\end{equation*}
+is stored. Improvements to exhaustive password searches with the aim to
+determine weak passwords exists. As passwords are often generated from a
+specific character set, \eg using digits, upper- and lower-case characters, and
+may be length-restricted, \eg allowing six to eight characters, the search space
+can be reduced considerably. This enables password recovery by brute-force or
+dictionary attacks. Recently, more advanced methods,
+\eg probabilistic context-free grammars~\cite{PWDCrackGrammars} or Markov
+models~\cite{FastDictAttacks,OMEN} were analyzed to improve the password guesses
+and the success rate and thus reduce the number of necessary guesses.
+
+Apart from the generation of suitable password candidates, the implementation has a
+high impact on the success. On general-purpose CPUs, generic tools like
+\emph{John the Ripper} (JtR)\footnote{cf. \url{http://www.openwall.com/john}} or
+target-specific tools like \emph{TrueCrack}\footnote{cf.
+\url{http://code.google.com/p/truecrack}}, addressing a specific algorithm, in
+this case TrueCrypt volumes, use algorithmic optimizations to gain a speedup
+when testing multiple passwords. To further improve efficiency, not only the CPU
+may be used: modern GPUs feature a large amount of parallel processing cores at
+high clock-frequencies in combination with large memory. As a prominent example,
+\emph{HashCat}\footnote{cf. \url{http://hashcat.net/oclhashcat}} utilizes this
+platform for high-performance hash computations.
+
+The major problem remains that hash functions are very fast to evaluate and thus
+enable fast attacks. \emph{Password-hashing functions} address this issue. These
+functions map a password to key material for further usage and explicitly slow
+down the computation time by making heavy use of the available resources: the
+computation should be fast enough to validate an honest user, but render
+password guessing infeasible. One key idea to prevent future improvements in
+architectures from breaking the efficiency of these function are flexible cost
+parameters. These adjust the function in terms of time and/or memory complexity.
+
+The current standardized password-based key-derivation function is PBKDF2 which
+is part of the Public-Key Cryptography Standards (PKCS)~\cite{RFC2898}.
+Non-standardized alternatives are bcrypt~\cite{BCRYPT_paper} and
+scrypt~\cite{percival-09-scrypt}.
+%Both are frequently used and feature different security approaches, \eg
+%requiring very large memory or frequently accessing small memory randomly.
+While the three functions are considered secure, each has its own advantages
+and disadvantages. This lead to the currently running password hashing
+competition (PHC)\footnote{\cf \url{https://password-hashing.net/}}, which aims
+at providing well-analyzed alternatives. Another purpose is discussing new ideas
+and different security models with respect to the impact of special-purpose
+hardware like modern GPUs, Application-Specific Integrated Circuits
+(ASICs) or Field-Programmable Gate Arrays (\mbox{FPGAs}).
+
+Usually, the overall cost of large-scale attacks on cryptographic functions --
+and thus the feasibility of the attack -- is dominated by the power costs. For
+this reason, specialized hardware achieves excellent results due to its low
+power consumption, especially when compared to general-purpose architectures.
+This makes special-purpose hardware very attractive for cryptanalysis in
+general~\cite{CryptanalysisCOPA, EnhancingCOPA, RealWorldA51, FPGAFactoring},
+as well as in the context of password-hashing functions~\cite{PBKDEvalutation}.
+
+For the remainder of this paper, we focus on bcrypt as the target function in
+the scope of efficient password-guessing attacks and start with an overview on
+the currently available implementations. In Section~\ref{sec:bcrypt}, we describe the bcrypt
+algorithm and the influence its tunable cost parameter.
+
+With the goal of benchmarking energy-efficient password cracking,
+\cite{PWDCON_Bcrypt} provided several implementations of bcrypt on low-power
+devices, including an FPGA implementation in December 2013. The authors used the
+zedboard (cf. \ref{sec:special-hardware}), which combines an ARM processor and
+an FPGA, and split the workload on both platforms. The FPGA computes the
+time-consuming cost-loop of the algorithm while the ARM manages the setup and
+post-processing. They reported up to 780 passwords per second (pps) for a cost
+parameter of 5 and identified the highly unbalanced resource usage as a drawback
+of the design.
+%
+In August 2014, \cite{WOOT/Malvoni14} presented
+%\footnote{The article was
+%accepted at WOOT'14 and will be presented on August 19, 2014. We were notified
+%about the results and provided with information about the content of the final
+%version. This paragraph and the numbers may be updated once the paper and
+%presentation are public.}
+a new design, improving the performance to 4571 pps
+for the same device and parameter, using the ARM only for JtR to generate
+candidates and to transfer initialization values to the FPGA. When they further
+optimized performance, the zedboard became unstable (heat and voltage problems).
+Due to these issues they also report a higher theoretical performance of 8122
+pps (derived from cost 12) and 7044 pps (simulated using the larger Zynq 7045
+FPGA).
+
+\emph{Contribution:} In this paper, we provide a practical and efficient
+implementation of bcrypt on a low-power FPGA-platform. Compared to the previous
+implementations on the same device, we achieve a performance gain of 8.35 and
+1.42, respectively.
+%, and outperform the theoretical upper bounds by more than 60\%.
+In addition, we implemented a simple on-chip password generation to
+utilize free area in the fabric, which splits a pre-defined password space and
+generates all possible brute-force candidates. This creates a self-contained,
+fully functional system (which may still use other sources for password
+candidate checking), which we compare to other currently available
+attack-platforms.
+
+\emph{Outline:} The rest of the paper is structured as follows: We first
+introduce the necessary background information in Section~\ref{sec:background},
+before we describe our implementation details in the subsequent section and
+discuss our results, followed by an evaluation of the costs of different attack
+scenarios, in Section~\ref{sec:results}. Finally, our conclusion and
+perspectives for future work form the last section.

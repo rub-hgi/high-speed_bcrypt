@@ -1,0 +1,114 @@
+%!TEX root = main.tex
+
+\section{Background}
+\label{sec:background}
+
+In this section, we introduce the bcrypt algorithm and outline the
+computationally expensive steps to motivate the design decisions we made. The
+second part gives a short overview of our two target FPGA families and their
+features.
+
+\subsection{The bcrypt password hash}
+\label{sec:bcrypt}
+
+
+Provos and Mazi\`{e}res published the bcrypt hash function~\cite{BCRYPT_paper}
+in 1999, which, at its core, is a cost-parameterized, modified version of the
+Blowfish encryption algorithm. The key concepts are a tunable cost parameter and
+the pseudo-random access of a 4 KByte memory. bcrypt is used as the default
+password hash in OpenBSD since version 2.1~\cite{BCRYPT_paper}. Additionally, it
+is the default password hash in current versions of Ruby on Rails and PHP.
+
+\begin{figure*}[tb] \centering
+\removelatexerror
+\begin{minipage}{.45\linewidth}
+\begin{algorithm2e}[H]
+	\KwIn{cost, salt, key}
+	\KwOut{state}
+	$state \leftarrow$ InitState$()$\;
+	$state \leftarrow$ ExpandKey$(state, salt, key)$\;
+	\KwSty{Repeat} ($2^{cost}$) \Begin{
+		$state \leftarrow$ ExpandKey$(state, 0, salt)$\;
+		$state \leftarrow$ ExpandKey$(state, 0, key)$\;
+	}
+	\KwRet{$state$}\;
+	\caption{EksBlowfishSetup}
+	\label{alg:eksblowfishsetup}
+\end{algorithm2e}
+\end{minipage}
+	\hspace{0.5cm}
+\begin{minipage}{.45\linewidth}
+\begin{algorithm2e}[H]
+	\KwIn{cost, salt, key}
+	\KwOut{hash}
+	$state \leftarrow$ EksBlowfishSetup$(cost,salt,key)$\;
+	$ctext \leftarrow$ ``OrpheanBeholderScryDoubt''\;
+	\KwSty{Repeat} ($64$) \Begin{
+		$ctext \leftarrow$ EncryptECB$(state, ctext)$\;
+	}
+	\KwRet{Concatenate$(cost,salt,key)$}\;
+	\caption{bcrypt}
+	\label{alg:bcrypt}
+\end{algorithm2e}
+\end{minipage}
+\end{figure*}
+
+bcrypt uses the parameters \textit{cost}, \textit{salt}, and \textit{key} as
+input. The number of executed loop iterations is exponential in the
+\textit{cost} parameter, \cf Algorithm~\ref{alg:eksblowfishsetup}
+(\texttt{EksBlowfishSetup}). The computation is divided into two phases: First,
+Algorithm~\ref{alg:eksblowfishsetup} initializes the internal state, which has
+the highest impact on the total runtime. Afterwards, Algorithm~\ref{alg:bcrypt}
+(\texttt{bcrypt}) encrypts a fixed value repeatedly using this state.
+
+
+In its structure, bcrypt makes heavy use of the Blowfish encryption function.
+This is a standard 16-round Feistel network, which uses SBoxes and subkeys
+determinded by the current $state$. Its blocksize is 64-bit and during every
+round, an f-function is evaluated: it uses the 32-bit input as four 8-bit
+addresses for the SBoxes and computes $(S_0(a) + S_1(b)) \oplus S_2(c) + S_3(d)$
+%
+\texttt{EksBlowfishSetup} is a modified version of the Blowfish key schedule. It
+computes a state, which consists of 18 32-bit subkeys and four SBoxes -- each
+256 $\times$ 32 bits in size -- which are later used in the encryption process.
+The state is initially filled with the digits of $\pi$ before an
+\texttt{ExpandKey} step is performed: After adding the input key to the subkeys,
+this step successively uses the current state to encrypt blocks of its
+\textit{salt} parameter and updates it with the resulting ciphertext. In this
+process, \texttt{ExpandKey} computes 521 Blowfish encryptions. If the salt is
+fixed to zero, the function resembles the standard Blowfish key schedule. An
+important detail is that the input key is only used during the very first part
+of the \texttt{ExpandKey} steps. \texttt{bcrypt} finally uses
+\texttt{EncryptECB}, which is effectively a Blowfish encryption.
+
+\subsection{Special-Purpose Hardware}
+\label{sec:special-hardware}
+
+While general-purpose hardware, \ie CPUs, offers a wide variety of instructions
+for all kinds of programs and algorithms, usually only a smaller subset is
+important for a specific task. More importantly, the generic structure and
+design of the architecture might impose restrictions and become cumbersome, \ie
+when registers are too small or memory access latency becomes a bottleneck.
+Reconfigurable hardware like FPGAs and special-purpose hardware like ASICs are
+far more specialized -- they are dedicated to a single task.
+
+An FPGA consists of a large area of programmable logic resources (the fabric),
+\eg lookup tables (LUTs), shift registers, multiplexers and storage elements,
+and a fixed amount of dedicated hardware modules, \eg memory cores (BRAM),
+digital signal processing units or even processor hardcores, and can be
+specialized for a given task.
+%
+In this work, we target two different Xilinx FPGA families. The main platform is
+zedboard, more precisely its Zynq-7000 XC7Z020 FPGA. It is located in the
+low-power low-cost segment. The second target is the Virtex-7 XC7VX485T FPGA
+which is a high-performance device.
+
+The Zynq-7000 consists mainly of a dual-core ARM Cortex A9 CPU, while the fabric
+area and resources are comparable to an Xilinx Artix-7 FPGA. The zedboard allows
+easy access to the logic inside the fabric and memory modules via direct memory
+access and provides several interfaces, \eg AXI4, AXI4-Stream, AXI4-Lite or
+Xillybus. It is a good choice for hardware/software co-design and in the context
+of this work provides a self-contained system including complex means for
+password generation and fast hardware designs. The Virtex-7 on the other hand,
+offers a five times larger fabric area and seven times more memory cores at the
+cost of more power consumption and a higher device price.
